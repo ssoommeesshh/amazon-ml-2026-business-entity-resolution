@@ -11,6 +11,7 @@ data_local/
 experiments/
 *.log
 profile_report.json
+output/sample_*/
 
 # Notebooks and checkpoints
 .ipynb_checkpoints/

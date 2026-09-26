@@ -38,3 +38,21 @@ python -m business_entity_resolution.cli `
 ```
 
 The next implementation stages are profiling, normalization, blocking, pair scoring, threshold validation, and final output generation. The final command must create both `matching_results.tsv` and `candidate_pairs.tsv`.
+
+## Candidate smoke test
+
+Use the project virtual environment and a bounded sample before scanning the full files:
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path .\code\business_entity_resolution\src)
+.\.venv\Scripts\python.exe -m business_entity_resolution.cli `
+  --train-dir dataset/train `
+  --test-dir dataset/test `
+  --output-dir output\sample_train `
+  --mode candidates `
+  --source-set train `
+  --sample-rows 1000 `
+  --max-candidates 50
+```
+
+This reads at most 1,000 rows from each of the three training files and writes a local candidate file. Sample output is ignored by Git. Exact blocking is intentionally conservative, so a low non-empty candidate count is expected at this stage.

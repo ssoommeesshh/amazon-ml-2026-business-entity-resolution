@@ -15,18 +15,24 @@ lower(
 """
 
 
-def _read_source(connection: duckdb.DuckDBPyConnection, path: str | Path, alias: str) -> None:
+def _read_source(
+  connection: duckdb.DuckDBPyConnection,
+  path: str | Path,
+  alias: str,
+  sample_rows: int | None = None,
+) -> None:
     """Register one TSV source as a DuckDB view with normalized fields."""
     escaped = str(path).replace("'", "''")
+    limit = "" if sample_rows is None else f" LIMIT {sample_rows}"
     connection.execute(
-        f"""
+      f"""
         CREATE OR REPLACE VIEW {alias} AS
         SELECT
           entity_id,
           country,
           trim(regexp_replace({NORMALIZED.format(column='business_name')}, '\\s+', ' ', 'g')) AS name_norm,
           trim(regexp_replace({NORMALIZED.format(column='business_address')}, '\\s+', ' ', 'g')) AS address_norm
-        FROM read_csv('{escaped}', delim='\\t', header=true, nullstr='')
+        FROM read_csv('{escaped}', delim='\\t', header=true, nullstr=''){limit}
         """
     )
 
@@ -37,18 +43,21 @@ def generate_exact_candidates(
     source3_path: str | Path,
     output_path: str | Path,
     max_candidates: int = 500,
+    sample_rows: int | None = None,
 ) -> int:
     """Generate bounded exact-name/address candidates and return row count."""
     if max_candidates < 1:
         raise ValueError("max_candidates must be positive")
+    if sample_rows is not None and sample_rows < 1:
+      raise ValueError("sample_rows must be positive when provided")
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
     connection = duckdb.connect()
     try:
-        _read_source(connection, source1_path, "source1")
-        _read_source(connection, source2_path, "source2")
-        _read_source(connection, source3_path, "source3")
+        _read_source(connection, source1_path, "source1", sample_rows)
+        _read_source(connection, source2_path, "source2", sample_rows)
+        _read_source(connection, source3_path, "source3", sample_rows)
         connection.execute(
             """
             CREATE OR REPLACE TEMP VIEW targets AS
