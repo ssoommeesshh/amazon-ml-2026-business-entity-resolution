@@ -10,6 +10,7 @@ dataset/
 data_local/
 experiments/
 *.log
+profile_report.json
 
 # Notebooks and checkpoints
 .ipynb_checkpoints/

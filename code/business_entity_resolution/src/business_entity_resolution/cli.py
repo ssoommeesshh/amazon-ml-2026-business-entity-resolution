@@ -1,6 +1,9 @@
 """Command-line entry point placeholder for the reproducible pipeline."""
 
 import argparse
+import json
+
+from .profile import profile_directory
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -21,7 +24,8 @@ def main() -> None:
     args = build_parser().parse_args()
     if args.mode == "predict":
         raise NotImplementedError("Blocking and matching are the next implementation step.")
-    print(f"Pipeline scaffold ready. train={args.train_dir} test={args.test_dir} output={args.output_dir}")
+    reports = profile_directory(args.train_dir) + profile_directory(args.test_dir)
+    print(json.dumps(reports, indent=2))
 
 
 if __name__ == "__main__":
