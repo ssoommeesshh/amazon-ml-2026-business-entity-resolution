@@ -1,0 +1,28 @@
+"""Command-line entry point placeholder for the reproducible pipeline."""
+
+import argparse
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run business entity resolution.")
+    parser.add_argument("--train-dir", required=True)
+    parser.add_argument("--test-dir", required=True)
+    parser.add_argument("--output-dir", required=True)
+    parser.add_argument(
+        "--mode",
+        choices=["profile", "predict"],
+        default="profile",
+        help="Use profile while building the pipeline; predict will be implemented next.",
+    )
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+    if args.mode == "predict":
+        raise NotImplementedError("Blocking and matching are the next implementation step.")
+    print(f"Pipeline scaffold ready. train={args.train_dir} test={args.test_dir} output={args.output_dir}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+
+# Local data and generated artifacts
+dataset/
+data_local/
+experiments/
+*.log
+
+# Notebooks and checkpoints
+.ipynb_checkpoints/
+checkpoints/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
