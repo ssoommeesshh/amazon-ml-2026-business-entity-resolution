@@ -59,3 +59,23 @@ $env:PYTHONPATH = (Resolve-Path .\code\business_entity_resolution\src)
 This reads at most 1,000 rows from each of the three training files and writes a local candidate file. Sample output is ignored by Git. Exact blocking is intentionally conservative, so a low non-empty candidate count is expected at this stage.
 
 For a recall smoke test against the full target files while keeping Source 1 small, use `--source1-sample-rows 1000` without `--target-sample-rows`. The `--max-token-frequency` option excludes overly common tokens from blocking.
+
+## End-to-end smoke test
+
+Generate candidates and baseline matches together:
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path .\code\business_entity_resolution\src)
+.\.venv\Scripts\python.exe -m business_entity_resolution.cli `
+  --train-dir dataset/train `
+  --test-dir dataset/test `
+  --output-dir output\sample_match_train_100 `
+  --mode match `
+  --source-set train `
+  --source1-sample-rows 100 `
+  --max-candidates 500 `
+  --max-token-frequency 500 `
+  --threshold 0.80
+```
+
+This creates both `candidate_pairs.tsv` and `matching_results.tsv`. It is a development smoke test; threshold tuning and a memory-bounded full-test runner are still required before submission.
