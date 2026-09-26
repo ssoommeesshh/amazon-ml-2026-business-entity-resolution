@@ -20,7 +20,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--source-set", choices=["train", "test"], default="test")
     parser.add_argument("--sample-rows", type=int, default=None)
+    parser.add_argument("--source1-sample-rows", type=int, default=None)
+    parser.add_argument("--target-sample-rows", type=int, default=None)
     parser.add_argument("--max-candidates", type=int, default=500)
+    parser.add_argument("--max-token-frequency", type=int, default=5000)
     return parser
 
 
@@ -37,6 +40,9 @@ def main() -> None:
             output_path=f"{args.output_dir}/candidate_pairs.tsv",
             max_candidates=args.max_candidates,
             sample_rows=args.sample_rows,
+            source1_sample_rows=args.source1_sample_rows,
+            target_sample_rows=args.target_sample_rows,
+            max_token_frequency=args.max_token_frequency,
         )
         print(f"Wrote {count} candidate rows to {args.output_dir}/candidate_pairs.tsv")
         return

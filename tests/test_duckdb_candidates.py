@@ -43,3 +43,21 @@ def test_sample_rows_limits_each_input_source(tmp_path: Path) -> None:
         "source1_entity_id\tcandidate_entity_ids",
         "S1-1\tS2-1,S3-1",
     ]
+
+
+def test_source1_and_target_limits_are_independent(tmp_path: Path) -> None:
+    source1 = tmp_path / "source1.tsv"
+    source2 = tmp_path / "source2.tsv"
+    source3 = tmp_path / "source3.tsv"
+    output = tmp_path / "candidate_pairs.tsv"
+    write_source(source1, [("S1-1", "Cafe Lumiere", "", "France"), ("S1-2", "Other", "", "France")])
+    write_source(source2, [("S2-1", "Cafe Lumiere", "", "France"), ("S2-2", "Cafe Lumiere", "", "France")])
+    write_source(source3, [("S3-1", "Cafe Lumiere", "", "France")])
+
+    assert generate_exact_candidates(
+        source1, source2, source3, output, source1_sample_rows=1, target_sample_rows=None
+    ) == 1
+    assert output.read_text(encoding="utf-8").splitlines() == [
+        "source1_entity_id\tcandidate_entity_ids",
+        "S1-1\tS2-1,S2-2,S3-1",
+    ]

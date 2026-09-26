@@ -52,7 +52,10 @@ $env:PYTHONPATH = (Resolve-Path .\code\business_entity_resolution\src)
   --mode candidates `
   --source-set train `
   --sample-rows 1000 `
-  --max-candidates 50
+  --max-candidates 50 `
+  --max-token-frequency 500
 ```
 
 This reads at most 1,000 rows from each of the three training files and writes a local candidate file. Sample output is ignored by Git. Exact blocking is intentionally conservative, so a low non-empty candidate count is expected at this stage.
+
+For a recall smoke test against the full target files while keeping Source 1 small, use `--source1-sample-rows 1000` without `--target-sample-rows`. The `--max-token-frequency` option excludes overly common tokens from blocking.

@@ -44,20 +44,31 @@ def generate_exact_candidates(
     output_path: str | Path,
     max_candidates: int = 500,
     sample_rows: int | None = None,
+    source1_sample_rows: int | None = None,
+    target_sample_rows: int | None = None,
+    max_token_frequency: int = 5000,
 ) -> int:
     """Generate bounded exact-name/address candidates and return row count."""
     if max_candidates < 1:
         raise ValueError("max_candidates must be positive")
+    if max_token_frequency < 1:
+      raise ValueError("max_token_frequency must be positive")
     if sample_rows is not None and sample_rows < 1:
       raise ValueError("sample_rows must be positive when provided")
+    source1_sample_rows = source1_sample_rows or sample_rows
+    target_sample_rows = target_sample_rows or sample_rows
+    if source1_sample_rows is not None and source1_sample_rows < 1:
+      raise ValueError("source1_sample_rows must be positive when provided")
+    if target_sample_rows is not None and target_sample_rows < 1:
+      raise ValueError("target_sample_rows must be positive when provided")
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
     connection = duckdb.connect()
     try:
-        _read_source(connection, source1_path, "source1", sample_rows)
-        _read_source(connection, source2_path, "source2", sample_rows)
-        _read_source(connection, source3_path, "source3", sample_rows)
+        _read_source(connection, source1_path, "source1", source1_sample_rows)
+        _read_source(connection, source2_path, "source2", target_sample_rows)
+        _read_source(connection, source3_path, "source3", target_sample_rows)
         connection.execute(
             """
             CREATE OR REPLACE TEMP VIEW targets AS
@@ -68,13 +79,25 @@ def generate_exact_candidates(
         )
         query = f"""
         COPY (
-          WITH matched AS (
+          WITH target_tokens AS (
+            SELECT entity_id, country, token
+            FROM (
+              SELECT entity_id, country, unnest(string_split(name_norm, ' ')) AS token
+              FROM targets
+              UNION ALL
+              SELECT entity_id, country, unnest(string_split(address_norm, ' ')) AS token
+              FROM targets
+            ) tokens
+            WHERE length(token) >= 4
+          ), allowed_tokens AS (
+            SELECT country, token
+            FROM target_tokens
+            GROUP BY country, token
+            HAVING count(*) <= {max_token_frequency}
+          ), exact_matches AS (
             SELECT
               source1.entity_id AS source1_entity_id,
-              target.entity_id AS candidate_entity_id,
-              row_number() OVER (
-                PARTITION BY source1.entity_id ORDER BY target.entity_id
-              ) AS candidate_rank
+              target.entity_id AS candidate_entity_id
             FROM source1
             JOIN targets AS target
               ON source1.country = target.country
@@ -83,11 +106,46 @@ def generate_exact_candidates(
                OR
                (source1.address_norm <> '' AND source1.address_norm = target.address_norm)
              )
+          ), token_matches AS (
+            SELECT DISTINCT
+              source1.entity_id AS source1_entity_id,
+              target_tokens.entity_id AS candidate_entity_id
+            FROM source1
+            JOIN (
+              SELECT entity_id, country, token
+              FROM (
+                SELECT entity_id, country, unnest(string_split(name_norm, ' ')) AS token
+                FROM source1
+                UNION ALL
+                SELECT entity_id, country, unnest(string_split(address_norm, ' ')) AS token
+                FROM source1
+              ) source_tokens
+              WHERE length(token) >= 4
+            ) source_tokens
+              ON source1.entity_id = source_tokens.entity_id
+            JOIN target_tokens
+              ON source_tokens.country = target_tokens.country
+             AND source_tokens.token = target_tokens.token
+            JOIN allowed_tokens
+              ON target_tokens.country = allowed_tokens.country
+             AND target_tokens.token = allowed_tokens.token
+          ), matched AS (
+            SELECT source1_entity_id, candidate_entity_id FROM exact_matches
+            UNION
+            SELECT source1_entity_id, candidate_entity_id FROM token_matches
+          ), ranked AS (
+            SELECT
+              source1_entity_id,
+              candidate_entity_id,
+              row_number() OVER (
+                PARTITION BY source1_entity_id ORDER BY candidate_entity_id
+              ) AS candidate_rank
+            FROM matched
           ), candidate_lists AS (
             SELECT
               source1_entity_id,
               string_agg(candidate_entity_id, ',' ORDER BY candidate_entity_id) AS candidate_entity_ids
-            FROM matched
+            FROM ranked
             WHERE candidate_rank <= {max_candidates}
             GROUP BY source1_entity_id
           )
