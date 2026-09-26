@@ -75,7 +75,7 @@ $env:PYTHONPATH = (Resolve-Path .\code\business_entity_resolution\src)
   --source1-sample-rows 100 `
   --max-candidates 500 `
   --max-token-frequency 500 `
-  --threshold 0.80
+  --threshold 0.85
 ```
 
 This creates both `candidate_pairs.tsv` and `matching_results.tsv`. It is a development smoke test; threshold tuning and a memory-bounded full-test runner are still required before submission.
